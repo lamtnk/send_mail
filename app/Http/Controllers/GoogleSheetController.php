@@ -19,7 +19,7 @@ class GoogleSheetController extends Controller
         // ID của Google Sheet
         $spreadsheetId = '1rMoO03hR97WX0gFhqwrg8RHDFXeCeAFOTthP0HFzUrY';
         // Phạm vi muốn đọc 
-        $range = 'KQDG - FA24!A1:AV49';
+        $range = 'KQDG - FA24!A2:AV49';
 
         try {
             $values = $this->googleSheetService->readSheet($spreadsheetId, $range);
