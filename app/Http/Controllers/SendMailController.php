@@ -2,30 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Mail\SendTestMail;
+use Exception;
 use Illuminate\Support\Facades\Mail;
 
 class SendMailController extends Controller
 {
     public function sendMail()
     {
+        $data = [
+            'subject' => 'Thông báo quan trọng từ ' . config('app.name'),
+            'email' => 'lamtnk2@fe.edu.vn',
+            'messageBody' => 'Bạn có một thông báo mới từ hệ thống.',
+            'actionUrl' => url('/')
+        ];
         try {
-            // Đưa nội dung email zô đây
-            $details = [
-                'title' => 'Test tiêu đề Email',
-                'body' => 'Test body email'
-            ];
+            Mail::send('emails.notification', $data, function ($message) use ($data) {
+                $message->to($data['email'])
+                    ->subject($data['subject']);
+            });
 
-            // Gửi email
-            Mail::to('lamtnk2@fpt.edu.vn')->send(new SendTestMail($details));
-
-            // Nếu thành công, chuyển hướng với thông báo success
             return redirect(route('index'))->with('success', 'Gửi mail thành công');
-        } catch (\Exception $e) {
-            // Nếu có lỗi xảy ra, bắt ngoại lệ và trả về lỗi
+        } catch (Exception $e) {
             return redirect(route('index'))->with('error', 'Gửi mail thất bại: ' . $e->getMessage());
+
         }
     }
-
 }
