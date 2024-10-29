@@ -12,13 +12,15 @@ class GoogleSheetController extends Controller
     public function __construct(GoogleSheetService $googleSheetService)
     {
         $this->googleSheetService = $googleSheetService;
+
+        //thanghq12
     }
 
     public function readGoogleSheet()
     {
         // ID của Google Sheet
         $spreadsheetId = '1rMoO03hR97WX0gFhqwrg8RHDFXeCeAFOTthP0HFzUrY';
-        // Phạm vi muốn đọc 
+        // Phạm vi muốn đọc
         $range = 'KQDG - FA24!A2:AV49';
 
         try {
