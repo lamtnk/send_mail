@@ -20,3 +20,4 @@ Route::get('/', function () {
 
 Route::get('send-mail', [SendMailController::class, 'sendMail'])->name('sendmail');
 
+Route::get('data-du-gio', [SendMailController::class, 'dataDugio'])->name('datadugio');
