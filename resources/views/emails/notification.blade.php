@@ -1,9 +1,10 @@
+<!-- resources/views/emails/report.blade.php -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Notification</title>
+    <title>Báo Cáo Dự Giờ</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,24 +45,14 @@
             line-height: 1.6;
             margin: 10px 0;
         }
+        .highlight {
+            font-weight: bold;
+        }
         .email-footer {
-            background-color: #f4f4f7;
             text-align: center;
             padding: 10px;
             font-size: 14px;
             color: #777;
-        }
-        .button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: #ffffff;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .button:hover {
-            background-color: #0056b3;
         }
     </style>
 </head>
@@ -70,20 +61,28 @@
         <div class="email-content">
             <!-- Header -->
             <div class="email-header">
-                <h1>Thông Báo từ {{ config('app.name') }}</h1>
+                <h1 style="text-transform:uppercase">BÁO CÁO DỰ GIỜ BỘ MÔN {{ $department }}</h1>
             </div>
 
             <!-- Body -->
             <div class="email-body">
-                <p>Xin chào,</p>
-                <p>Chúng tôi có một thông báo mới dành cho bạn.</p>
-                <p>Nội dung thông báo: <strong>{{ $messageBody }}</strong></p>
-                <p>Nhấn vào nút dưới đây để xem thêm chi tiết:</p>
-                <p>
-                    <a href="{{ $actionUrl }}" class="button">Xem chi tiết</a>
-                </p>
-                <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi!</p>
-                <p>Trân trọng,<br>{{ config('app.name') }} Team</p>
+                <p><span class="highlight">Ngày dự giờ:</span> {{ $date }}</p>
+                <p><span class="highlight">Ca:</span> {{ $section }}</p>
+                <p><span class="highlight">Địa điểm:</span> {{ $location }}</p>
+                <p><span class="highlight">Mã Môn + Tên Môn:</span> {{ $subject_code }}</p>
+                <p><span class="highlight">Mã GV được dự giờ:</span> {{ $evaluated_teacher_code }}</p>
+
+                <p><span class="highlight">GV1:</span> {{ $evaluator_teacher1 }} - {{ $evaluator_email1 }}</p>
+                <p><span class="highlight">GV2:</span> {{ $evaluator_teacher2 ?? 'N/A' }} - {{ $evaluator_email2 ?? 'N/A' }}</p>
+
+                <p><span class="highlight">Điểm GV1:</span> {{ $score1 }}</p>
+                <p><span class="highlight">Điểm GV2:</span> {{ $score2 ?? 'N/A' }}</p>
+
+                <p><span class="highlight">Ưu điểm giờ giảng:</span> {{ $advantages ?? 'N/A' }}</p>
+                <p><span class="highlight">Những điểm cần rút kinh nghiệm:</span> {{ $disadvantages ?? 'N/A' }}</p>
+                <p><span class="highlight">Kết luận giờ giảng:</span> {{ $conclusion ?? 'N/A' }}</p>
+
+                <p>Nếu không thắc mắc về thông tin kết quả dự giờ thì GV được dự giờ sẽ coi như đồng ý kết quả.</p>
             </div>
 
             <!-- Footer -->
