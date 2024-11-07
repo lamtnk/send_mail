@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             //
-            $table->string('google_id')->nullable();
+            $table->string('google_id')->nullable()->unique();
+            $table->string('avatar')->nullable();
         });
     }
 

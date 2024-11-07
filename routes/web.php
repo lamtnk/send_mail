@@ -16,16 +16,21 @@ use App\Http\Controllers\Auth\GoogleController;
 */
 
 Route::get('/', function () {
-    return view('index');
+    return view('auth.login');
 })->name('index');
-
-// Route::get('send-mail', [SendMailController::class, 'sendMail'])->name('sendmail');
-
-Route::post('/send-mail', [SendMailController::class, 'sendMail'])->name('sendMail');
-
-Route::get('data-du-gio', [SendMailController::class, 'dataDugio'])->name('datadugio');
-
-Route::get('auth/google', [GoogleController::class, 'redirectToGoogle']);
+Route::get('/login', function () {
+    return view('auth.login');
+})->name('login');
+Route::get('auth/google', [GoogleController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
 
-Route::post('/send-all', [SendMailController::class, 'sendAll'])->name('sendAll');
+// Route::get('send-mail', [SendMailController::class, 'sendMail'])->name('sendmail');
+Route::middleware(['auth'])->group(function () {
+
+    Route::post('/send-mail', [SendMailController::class, 'sendMail'])->name('sendMail');
+
+    Route::get('data-du-gio', [SendMailController::class, 'dataDugio'])->name('datadugio');
+
+    Route::get('/logout', [GoogleController::class, 'logout'])->name('logout');
+    Route::post('/send-all', [SendMailController::class, 'sendAll'])->name('sendAll');
+});

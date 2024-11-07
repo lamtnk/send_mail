@@ -6,11 +6,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo Cáo Dự Giờ</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="container-fluid mt-5">
-        <h2 class="mb-4">Báo Cáo Dự Giờ</h2>
+    <div class="container-fluid mt-2">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="mb-0">Báo Cáo Dự Giờ</h2>
+            <div class="d-flex align-items-center">
+                <img src="{{ Auth::user()->avatar }}" alt="Avatar" class="rounded-circle mr-2" width="40"
+                    height="40">
+                <span class="mr-3">{{ Auth::user()->name }}</span>
+                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                </form>
+            </div>
+        </div>
+
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
@@ -26,14 +49,16 @@
                 </button>
             </div>
         @endif
+
         <div>
             <form action="{{ route('sendAll') }}" method="POST">
                 @csrf
                 <button type="submit" class="btn btn-success mb-3">Gửi tất cả (Những mail chưa gửi)</button>
             </form>
-
         </div>
-        <table class="table table-bordered">
+
+        <!-- Bảng dữ liệu... -->
+        <table id="reportTable" class="table table-bordered">
             <thead class="thead-dark">
                 <tr>
                     <th>Ngày</th>
@@ -156,6 +181,17 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables JS -->
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#reportTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Vietnamese.json"
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

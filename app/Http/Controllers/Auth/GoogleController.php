@@ -1,35 +1,27 @@
 <?php
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Socialite;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
 {
-    /**
-     * Redirect to Google for authentication.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    // Redirect to Google for authentication
     public function redirectToGoogle()
     {
         return Socialite::driver('google')->redirect();
     }
 
-    /**
-     * Handle Google callback and log in or register user.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    // Handle callback from Google
     public function handleGoogleCallback()
     {
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
+
             $user = User::where('email', $googleUser->getEmail())->first();
 
             if ($user) {
@@ -41,17 +33,25 @@ class GoogleController extends Controller
                     'name' => $googleUser->getName(),
                     'email' => $googleUser->getEmail(),
                     'google_id' => $googleUser->getId(),
-                    'password' => Hash::make(uniqid())
+                    'password' => Hash::make(uniqid()),
+                    'avatar' => $googleUser->getAvatar(),
                 ]);
                 Auth::login($user);
             }
 
-            return redirect()->route('index'); 
+            return redirect()->route('datadugio')->with('success', 'Đăng nhập thành công');
         } catch (\Exception $e) {
             Log::error('Error during Google login: ' . $e->getMessage(), [
                 'exception' => $e,
             ]);
-            return redirect('/login')->with('error', 'Có lỗi xảy ra khi đăng nhập với Google.');
+            return redirect()->route('login')->with('error', 'Đăng nhập thất bại');
         }
+    }
+
+    // Logout user
+    public function logout()
+    {
+        Auth::logout();
+        return redirect()->route('login')->with('success', 'Đã đăng xuất');
     }
 }
