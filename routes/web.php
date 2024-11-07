@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\SendMailController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\GoogleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,3 +22,6 @@ Route::get('/', function () {
 Route::get('send-mail', [SendMailController::class, 'sendMail'])->name('sendmail');
 
 Route::get('data-du-gio', [SendMailController::class, 'dataDugio'])->name('datadugio');
+
+Route::get('auth/google', [GoogleController::class, 'redirectToGoogle']);
+Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);

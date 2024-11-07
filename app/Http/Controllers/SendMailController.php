@@ -60,9 +60,21 @@ class SendMailController extends Controller
     public function dataDugio()
     {
         $datas = $this->readGoogleSheet();
+        // Lọc dữ liệu để lấy những cột cần thiết
         dd($datas);
-//        echo "<pre>";
-//        print_r($datas);
-        return view('emails.list',compact('datas'));
+        $filteredData = array_map(function ($item) {
+            return [
+                'email' => $item[9],        // Email của giảng viên
+                'teacher_code' => $item[15], // Mã GV
+                'teacher_name' => $item[16], // Tên GV
+                'subject_code' => $item[0],  // Mã môn học
+                'date' => $item[11],         // Ngày dự giờ
+                'time' => $item[12],         // Ca dự giờ
+                'location' => $item[13],     // Địa điểm
+                'score' => $item[1]          // Điểm GV
+            ];
+        }, $datas);
+        unset($filteredData[0]);
+        return view('report.index', compact('filteredData'));
     }
 }
