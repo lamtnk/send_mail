@@ -3,6 +3,7 @@
 use App\Http\Controllers\SendMailController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\DataSyncController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,6 +32,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('data-du-gio', [SendMailController::class, 'dataDugio'])->name('datadugio');
 
-    Route::get('/logout', [GoogleController::class, 'logout'])->name('logout');
+    Route::post('/logout', [GoogleController::class, 'logout'])->name('logout');
     Route::post('/send-all', [SendMailController::class, 'sendAll'])->name('sendAll');
+    Route::get('/sync-data', [DataSyncController::class, 'index'])->name('sync.index');
+    Route::post('/sync-data', [DataSyncController::class, 'sync'])->name('sync.perform');
 });

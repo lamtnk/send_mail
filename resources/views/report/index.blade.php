@@ -73,31 +73,10 @@
                 </tr>
             </thead>
             <tbody>
-                @php
-                    // Lấy danh sách mail đã gửi cho user đang đăng nhập
-                    $sentMails = App\Models\SentMail::where('user_id', Auth::id())->get();
-                    $sentRecords = $sentMails
-                        ->map(function ($sentMail) {
-                            return [
-                                'date' => $sentMail->date,
-                                'subject_code' => $sentMail->subject_code,
-                                'section' => $sentMail->section,
-                            ];
-                        })
-                        ->toArray();
-                @endphp
-
                 @foreach ($datas as $data)
                     @php
-                        // Kiểm tra xem bản ghi này đã gửi hay chưa
-                        $isSent = in_array(
-                            [
-                                'date' => $data['date'],
-                                'subject_code' => $data['subject_code'],
-                                'section' => $data['section'],
-                            ],
-                            $sentRecords,
-                        );
+                        // Kiểm tra nếu bản ghi đã được gửi trước đó (dựa trên trường sent_at)
+                        $isSent = !is_null($data['sent_at']);
                     @endphp
 
                     <tr>
@@ -119,10 +98,7 @@
                             <!-- Nút Gửi hoặc Gửi lại -->
                             <form action="{{ route('sendMail') }}" method="POST" style="display:inline;">
                                 @csrf
-                                @foreach ($data as $key => $value)
-                                    <input type="hidden" name="data[{{ $key }}]"
-                                        value="{{ $value }}">
-                                @endforeach
+                                <input type="hidden" name="record_id" value="{{ $data['id'] }}">
                                 <button type="submit"
                                     class="btn {{ $isSent ? 'btn-secondary' : 'btn-primary' }} btn-sm">
                                     {{ $isSent ? 'Gửi lại' : 'Gửi' }}
