@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo Cáo Dự Giờ</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.css">
     <style>
         body {
@@ -34,6 +33,7 @@
             </div>
         </div>
 
+        <!-- Thông báo và form bộ lọc -->
         @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ session('success') }}
@@ -50,14 +50,47 @@
             </div>
         @endif
 
-        <div>
-            <form action="{{ route('sendAll') }}" method="POST">
-                @csrf
-                <button type="submit" class="btn btn-success mb-3">Gửi tất cả (Những mail chưa gửi)</button>
-            </form>
-        </div>
+        <form id="filterForm" method="GET" action="{{ route('datadugio') }}" class="mb-4">
+            <!-- Bộ lọc -->
+            <div class="form-row">
+                <div class="col-md-3">
+                    <select name="year" class="form-control">
+                        <option value="">Chọn Năm Học</option>
+                        @foreach ($years as $year)
+                            <option value="{{ $year }}" {{ request('year') == $year ? 'selected' : '' }}>
+                                {{ $year }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="semester" class="form-control">
+                        <option value="">Chọn Học Kỳ</option>
+                        <option value="FA" {{ request('semester') == 'FA' ? 'selected' : '' }}>FA</option>
+                        <option value="SP" {{ request('semester') == 'SP' ? 'selected' : '' }}>SP</option>
+                        <option value="SU" {{ request('semester') == 'SU' ? 'selected' : '' }}>SU</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="block" class="form-control">
+                        <option value="">Chọn Block</option>
+                        @foreach ($blocks as $block)
+                            <option value="{{ $block }}" {{ request('block') == $block ? 'selected' : '' }}>
+                                {{ $block }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-center">
+                    <button type="submit" class="btn btn-primary mr-2">Apply Filter</button>
+                    <a href="{{ route('datadugio') }}" class="btn btn-secondary">Clear Filter</a>
+                </div>
+            </div>
+        </form>
 
-        <!-- Bảng dữ liệu... -->
+        <!-- Nút gửi tất cả -->
+        <!-- Nút gửi tất cả -->
+        <button type="button" class="btn btn-success mb-3" id="sendAllBtn">Gửi tất cả (Những mail chưa gửi)</button>
+
+        <!-- Bảng dữ liệu báo cáo -->
         <table id="reportTable" class="table table-bordered">
             <thead class="thead-dark">
                 <tr>
@@ -74,11 +107,6 @@
             </thead>
             <tbody>
                 @foreach ($datas as $data)
-                    @php
-                        // Kiểm tra nếu bản ghi đã được gửi trước đó (dựa trên trường sent_at)
-                        $isSent = !is_null($data['sent_at']);
-                    @endphp
-
                     <tr>
                         <td>{{ $data['date'] }}</td>
                         <td>{{ $data['location'] }}</td>
@@ -100,12 +128,47 @@
                                 @csrf
                                 <input type="hidden" name="record_id" value="{{ $data['id'] }}">
                                 <button type="submit"
-                                    class="btn {{ $isSent ? 'btn-secondary' : 'btn-primary' }} btn-sm">
-                                    {{ $isSent ? 'Gửi lại' : 'Gửi' }}
+                                    class="btn {{ $data['sent_at'] ? 'btn-secondary' : 'btn-primary' }} btn-sm">
+                                    {{ $data['sent_at'] ? 'Gửi lại' : 'Gửi' }}
                                 </button>
                             </form>
                         </td>
                     </tr>
+
+                    <!-- Modal xác nhận gửi tất cả -->
+                    <div class="modal fade" id="confirmSendAllModal" tabindex="-1" role="dialog"
+                        aria-labelledby="confirmSendAllModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="confirmSendAllModalLabel">Xác nhận gửi tất cả</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Bạn có chắc chắn muốn gửi tất cả email cho:</p>
+                                    <ul>
+                                        <li><strong>Năm học:</strong> <span id="selectedYear">N/A</span></li>
+                                        <li><strong>Học kỳ:</strong> <span id="selectedSemester">N/A</span></li>
+                                        <li><strong>Block:</strong> <span id="selectedBlock">N/A</span></li>
+                                    </ul>
+                                    <p>Hãy kiểm tra kỹ bộ lọc để tránh gửi nhầm email.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-dismiss="modal">Hủy</button>
+                                    <form action="{{ route('sendAll') }}" method="POST" id="sendAllForm">
+                                        @csrf
+                                        <input type="hidden" name="year" value="{{ request('year') }}">
+                                        <input type="hidden" name="semester" value="{{ request('semester') }}">
+                                        <input type="hidden" name="block" value="{{ request('block') }}">
+                                        <button type="submit" class="btn btn-primary">Xác nhận gửi</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Modal chi tiết -->
                     <div class="modal fade" id="detailsModal-{{ $loop->index }}" tabindex="-1" role="dialog"
@@ -113,7 +176,8 @@
                         <div class="modal-dialog modal-lg" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="detailsModalLabel-{{ $loop->index }}">Chi tiết Dự Giờ
+                                    <h5 class="modal-title" id="detailsModalLabel-{{ $loop->index }}">Chi tiết Dự
+                                        Giờ
                                     </h5>
                                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                         <span aria-hidden="true">&times;</span>
@@ -144,7 +208,8 @@
                                     <p><strong>Kết luận giờ giảng:</strong> {{ $data['conclusion'] }}</p>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                                    <button type="button" class="btn btn-secondary"
+                                        data-dismiss="modal">Đóng</button>
                                 </div>
                             </div>
                         </div>
@@ -157,7 +222,6 @@
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-    <!-- DataTables JS -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.js"></script>
     <script>
         $(document).ready(function() {
@@ -166,6 +230,20 @@
                     "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Vietnamese.json"
                 }
             });
+        });
+
+        // Show modal xác nhận khi bấm Gửi tất cả
+        $('#sendAllBtn').on('click', function() {
+            // Lấy giá trị bộ lọc để hiển thị trong modal
+            let year = $('[name="year"]').val() || 'Tất cả';
+            let semester = $('[name="semester"]').val() || 'Tất cả';
+            let block = $('[name="block"]').val() || 'Tất cả';
+
+            $('#selectedYear').text(year);
+            $('#selectedSemester').text(semester);
+            $('#selectedBlock').text(block);
+
+            $('#confirmSendAllModal').modal('show');
         });
     </script>
 </body>
