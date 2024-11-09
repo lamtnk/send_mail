@@ -52,7 +52,7 @@ class DataSyncController extends Controller
             // Xử lý dữ liệu: lọc và chuyển đổi định dạng
             $filteredData = $this->extractRelevantFields($values);
             $transformedData = $this->transformData($filteredData);
-
+            dd($transformedData);
             // Lưu vào CSDL nếu không trùng lặp
             foreach ($transformedData as $data) {
                 $exists = ClassObservation::where('date', $data['date'])
@@ -65,7 +65,7 @@ class DataSyncController extends Controller
                 if (!$exists) {
                     // Nếu chưa có bản ghi trong `class_observations`, lưu vào CSDL
                     ClassObservation::create([
-                        'date' => $data['date'],
+                        'date' => strtotime($data['date']),
                         'location' => $data['location'],
                         'subject_code' => $data['subject_code'],
                         'department' => $data['department'],
@@ -118,7 +118,6 @@ class DataSyncController extends Controller
                 'semester' => $row[7] ?? null,
             ];
         }, $data);
-
         return $filteredData;
     }
 
@@ -131,6 +130,7 @@ class DataSyncController extends Controller
         foreach ($data as $row) {
             // Kiểm tra và chuyển đổi định dạng ngày
             $date = $row['date'];
+
             try {
                 $date = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
             } catch (\Exception $e) {
@@ -138,20 +138,23 @@ class DataSyncController extends Controller
                 continue; // Bỏ qua bản ghi này nếu ngày không hợp lệ
             }
 
-            $key = $date . '-' . $row['subject_code'] . '-' . $row['section'] . '-' . $row['evaluated_teacher_code'];
+            
 
+
+            $key = $date . '-' . $row['subject_code'] . '-' . $row['section'] . '-' . $row['evaluated_teacher_code'];
             if (!isset($temp[$key])) {
                 $temp[$key] = [];
             }
-
+            
             $temp[$key][] = $row;
         }
-
+        
         foreach ($temp as $key => $rows) {
             if (count($rows) == 2) {
+
                 // Nếu có 2 người dự giờ, gộp dữ liệu
                 $transformedData[] = [
-                    'date' => $date,
+                    'date' => $rows[0]['date'],
                     'location' => $rows[0]['location'],
                     'subject_code' => $rows[0]['subject_code'],
                     'evaluated_teacher_code' => $rows[0]['evaluated_teacher_code'],
@@ -173,7 +176,7 @@ class DataSyncController extends Controller
             } elseif (count($rows) == 1) {
                 // Nếu chỉ có 1 người dự giờ, giữ nguyên dữ liệu đó
                 $transformedData[] = [
-                    'date' => $date,
+                    'date' => $rows[0]['date'],
                     'location' => $rows[0]['location'],
                     'subject_code' => $rows[0]['subject_code'],
                     'evaluated_teacher_code' => $rows[0]['evaluated_teacher_code'],
@@ -191,7 +194,6 @@ class DataSyncController extends Controller
                 ];
             }
         }
-
         return $transformedData;
     }
 }
