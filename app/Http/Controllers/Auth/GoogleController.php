@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -11,8 +12,13 @@ use Laravel\Socialite\Facades\Socialite;
 class GoogleController extends Controller
 {
     // Redirect to Google for authentication
-    public function redirectToGoogle()
+    public function redirectToGoogle(Request $request)
     {
+        // Kiểm tra nếu `system_type` không được chọn
+        if (!$request->has('system_type') || empty($request->input('system_type'))) {
+            return redirect()->back()->with('error', 'Vui lòng chọn cơ sở trước khi tiếp tục.');
+        }
+        session(['system_type' => $request->input('system_type')]);
         return Socialite::driver('google')->redirect();
     }
 
@@ -47,6 +53,7 @@ class GoogleController extends Controller
             return redirect()->route('login')->with('error', 'Đăng nhập thất bại');
         }
     }
+
 
     // Logout user
     public function logout()

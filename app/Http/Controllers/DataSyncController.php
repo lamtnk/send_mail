@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClassObservation;
+use App\Models\ClassObservationPoly;
 use Illuminate\Http\Request;
 use App\Services\GoogleSheetService; // Giả định bạn có một service để đồng bộ dữ liệu
 use Exception;
@@ -28,8 +29,28 @@ class DataSyncController extends Controller
     public function sync(Request $request)
     {
         try {
-            $spreadsheetId = '1rMoO03hR97WX0gFhqwrg8RHDFXeCeAFOTthP0HFzUrY'; // Cập nhật với ID của Google Sheets
-            $this->readGoogleSheet($spreadsheetId); // Gọi hàm đồng bộ
+            // Kiểm tra nếu hệ thống chưa được chọn
+            $systemType = $request->input('system_type');
+            if (!$systemType) {
+                return redirect()->route('sync.index')->with('error', 'Vui lòng chọn hệ trước khi đồng bộ dữ liệu.');
+            }
+
+            // Lấy ID bảng tính và tên trang từ request
+            $spreadsheetId = $request->input('spreadsheet_id');
+            $range = $request->input('sheet_name');
+
+            // Kiểm tra nếu chưa nhập ID bảng tính hoặc tên trang tính
+            if (!$spreadsheetId || !$range) {
+                return redirect()->route('sync.index')->with('error', 'Vui lòng nhập ID bảng tính và tên trang tính.');
+            }
+
+            // Xác định bảng mục tiêu dựa trên hệ đã chọn
+            $table = $systemType === 'cd' ? 'class_observations_poly' : 'class_observations';
+            $result = $this->readGoogleSheet($spreadsheetId, $range, $table);
+            // Kiểm tra nếu có lỗi trong quá trình đọc Google Sheet
+            if ($result === false) {
+                return redirect()->route('sync.index')->with('error', 'Đồng bộ dữ liệu thất bại: Không thể đọc dữ liệu từ Google Sheet.');
+            }
 
             return redirect()->route('sync.index')->with('success', 'Đồng bộ dữ liệu thành công.');
         } catch (Exception $e) {
@@ -38,12 +59,16 @@ class DataSyncController extends Controller
         }
     }
 
-    public function readGoogleSheet($spreadsheetId = '1rMoO03hR97WX0gFhqwrg8RHDFXeCeAFOTthP0HFzUrY', $range = 'KQDG - FA24!A2:AV49')
+
+
+    public function readGoogleSheet($spreadsheetId, $range, $table)
     {
         try {
             // Đọc dữ liệu từ Google Sheets
             $values = $this->googleSheetService->readSheet($spreadsheetId, $range);
             unset($values[0]); // Xóa hàng tiêu đề
+            unset($values[1]); // Xóa hàng tiêu đề
+
             if (empty($values)) {
                 return response()->json(['message' => 'Không tìm thấy dữ liệu'], 404);
             }
@@ -52,9 +77,12 @@ class DataSyncController extends Controller
             $filteredData = $this->extractRelevantFields($values);
             $transformedData = $this->transformData($filteredData);
 
+            // Xác định mô hình bảng dựa vào $table
+            $modelClass = $table === 'class_observations_poly' ? ClassObservationPoly::class : ClassObservation::class;
+
             foreach ($transformedData as $data) {
                 // Sử dụng updateOrCreate để cập nhật hoặc thêm mới vào CSDL
-                ClassObservation::updateOrCreate(
+                $modelClass::updateOrCreate(
                     [
                         'date' => $this->parseDate($data['date']),
                         'subject_code' => $data['subject_code'],
@@ -81,12 +109,13 @@ class DataSyncController extends Controller
                 );
             }
 
-            return response()->json(['message' => 'Dữ liệu đã được đọc và lưu thành công'], 200);
+            return true;
         } catch (\Exception $e) {
             Log::error('Error reading Google Sheet: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return false;
         }
     }
+
 
 
     private function parseDate($dateString)

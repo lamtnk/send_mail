@@ -36,4 +36,5 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/send-all', [SendMailController::class, 'sendAll'])->name('sendAll');
     Route::get('/sync-data', [DataSyncController::class, 'index'])->name('sync.index');
     Route::post('/sync-data', [DataSyncController::class, 'sync'])->name('sync.perform');
+
 });
