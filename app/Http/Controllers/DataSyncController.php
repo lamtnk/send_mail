@@ -43,33 +43,28 @@ class DataSyncController extends Controller
         try {
             // Đọc dữ liệu từ Google Sheets
             $values = $this->googleSheetService->readSheet($spreadsheetId, $range);
-            unset($values[0]); // Xóa tiêu đề của dữ liệu
-            // Kiểm tra nếu không có dữ liệu
+            unset($values[0]); // Xóa hàng tiêu đề
             if (empty($values)) {
                 return response()->json(['message' => 'Không tìm thấy dữ liệu'], 404);
             }
 
-            // Xử lý dữ liệu: lọc và chuyển đổi định dạng
+            // Lọc và chuyển đổi dữ liệu
             $filteredData = $this->extractRelevantFields($values);
             $transformedData = $this->transformData($filteredData);
-            dd($transformedData);
-            // Lưu vào CSDL nếu không trùng lặp
-            foreach ($transformedData as $data) {
-                $exists = ClassObservation::where('date', $data['date'])
-                    ->where('subject_code', $data['subject_code'])
-                    ->where('section', $data['section'])
-                    ->where('block', $data['block'])
-                    ->where('semester', $data['semester'])
-                    ->exists();
 
-                if (!$exists) {
-                    // Nếu chưa có bản ghi trong `class_observations`, lưu vào CSDL
-                    ClassObservation::create([
-                        'date' => strtotime($data['date']),
-                        'location' => $data['location'],
+            foreach ($transformedData as $data) {
+                // Sử dụng updateOrCreate để cập nhật hoặc thêm mới vào CSDL
+                ClassObservation::updateOrCreate(
+                    [
+                        'date' => $this->parseDate($data['date']),
                         'subject_code' => $data['subject_code'],
-                        'department' => $data['department'],
                         'section' => $data['section'],
+                        'block' => $data['block'],
+                        'semester' => $data['semester'],
+                    ],
+                    [
+                        'location' => $data['location'],
+                        'department' => $data['department'],
                         'evaluated_teacher_code' => $data['evaluated_teacher_code'],
                         'evaluator_teacher1' => $data['evaluator_teacher1'],
                         'score1' => $data['score1'],
@@ -81,19 +76,27 @@ class DataSyncController extends Controller
                         'advantages' => $data['advantages'] ?? null,
                         'disadvantages' => $data['disadvantages'] ?? null,
                         'conclusion' => $data['conclusion'] ?? null,
-                        'block' => $data['block'],
-                        'semester' => $data['semester'],
                         'sent_at' => null, // Đặt null vì chưa gửi mail
-                    ]);
-                }
+                    ]
+                );
             }
 
-            // Trả về dữ liệu đã được xử lý và lưu vào CSDL
             return response()->json(['message' => 'Dữ liệu đã được đọc và lưu thành công'], 200);
         } catch (\Exception $e) {
-            // Xử lý lỗi nếu có và trả về thông báo lỗi
             Log::error('Error reading Google Sheet: ' . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
+    private function parseDate($dateString)
+    {
+        // Chuyển định dạng ngày từ d/m/Y sang Y-m-d nếu định dạng đúng
+        try {
+            $date = \DateTime::createFromFormat('d/m/Y', $dateString);
+            return $date ? $date->format('Y-m-d') : null;
+        } catch (\Exception $e) {
+            return null; // Trả về null nếu không chuyển được
         }
     }
 
@@ -138,17 +141,17 @@ class DataSyncController extends Controller
                 continue; // Bỏ qua bản ghi này nếu ngày không hợp lệ
             }
 
-            
+
 
 
             $key = $date . '-' . $row['subject_code'] . '-' . $row['section'] . '-' . $row['evaluated_teacher_code'];
             if (!isset($temp[$key])) {
                 $temp[$key] = [];
             }
-            
+
             $temp[$key][] = $row;
         }
-        
+
         foreach ($temp as $key => $rows) {
             if (count($rows) == 2) {
 
