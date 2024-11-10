@@ -62,7 +62,8 @@ class SendMailController extends Controller
         try {
             // Gửi email từ view
             Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
-                $message->to('lamtnk2@fpt.edu.vn')
+                $message->to('thanghq12@fe.edu.vn')
+                    ->cc('task-bmcn-ptcd-hpg@feedu.onmicrosoft.com')
                     ->subject('Thông báo dự giờ từ ' . config('app.name'));
             });
 
@@ -164,7 +165,8 @@ class SendMailController extends Controller
             try {
                 // Gửi email từ view
                 Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
-                    $message->to('lamtnk2@fpt.edu.vn')
+                    $message->to('thanghq12@fe.edu.vn')
+                        ->cc('task-bmcn-ptcd-hpg@feedu.onmicrosoft.com')
                         ->subject('Thông báo dự giờ từ ' . config('app.name'));
                 });
 
@@ -180,6 +182,4 @@ class SendMailController extends Controller
         // Thông báo kết quả
         return redirect()->route('datadugio')->with('success', "Đã gửi thành công $successCount email. $errorCount email gặp lỗi.");
     }
-
-
 }
