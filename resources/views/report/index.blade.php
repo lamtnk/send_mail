@@ -25,12 +25,22 @@
             <div class="d-flex align-items-center">
                 <img src="{{ Auth::user()->avatar }}" alt="Avatar" class="rounded-circle mr-2" width="40"
                     height="40">
-                <span class="mr-3">{{ Auth::user()->name }}</span>
-                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
-                </form>
+                <div class="dropdown ml-2">
+                    <button class="btn btn-outline-secondary dropdown-toggle btn-sm" type="button" id="userDropdown"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{ Auth::user()->name }}
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                        <a class="dropdown-item" href="{{ route('department.choose') }}">Cập nhật bộ môn</a>
+                        <div class="dropdown-divider"></div>
+                        <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger">Logout</button>
+                        </form>
+                    </div>
+                </div>
             </div>
+
         </div>
 
         <!-- Thông báo và form bộ lọc -->

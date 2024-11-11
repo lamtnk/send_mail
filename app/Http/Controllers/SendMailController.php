@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendBulkEmailsJob;
 use App\Models\ClassObservation;
 use App\Models\ClassObservationPoly;
 use App\Models\SentMail;
@@ -62,7 +63,7 @@ class SendMailController extends Controller
         try {
             // Gửi email từ view
             Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
-                $message->to('thanghq12@fe.edu.vn')
+                $message->to('lamtnk2@fpt.edu.vn')
                     ->cc('task-bmcn-ptcd-hpg@feedu.onmicrosoft.com')
                     ->subject('Thông báo dự giờ từ ' . config('app.name'));
             });
@@ -109,8 +110,6 @@ class SendMailController extends Controller
     public function sendAll(Request $request)
     {
         $userEmail = Auth::user()->email;
-
-        // Chọn bảng dữ liệu dựa vào session
         $model = session('system_type') === 'cd' ? ClassObservationPoly::class : ClassObservation::class;
 
         // Lấy bộ lọc từ request
@@ -120,8 +119,8 @@ class SendMailController extends Controller
 
         // Truy vấn dữ liệu từ bảng tương ứng dựa trên bộ lọc
         $query = $model::query()
-            ->where('evaluator_email1', $userEmail) // Chỉ lấy bản ghi của người đang đăng nhập
-            ->whereNull('sent_at'); // Chỉ lấy những bản ghi chưa được gửi
+            ->where('evaluator_email1', $userEmail)
+            ->whereNull('sent_at');
 
         if ($year) {
             $query->whereYear('date', $year);
@@ -136,50 +135,10 @@ class SendMailController extends Controller
         }
 
         $unsentData = $query->get();
+        // Dispatch job để gửi email
+        dispatch(new SendBulkEmailsJob($unsentData, $userEmail));
 
-        $successCount = 0;
-        $errorCount = 0;
-
-        foreach ($unsentData as $data) {
-            $formattedDate = $data->date instanceof \Carbon\Carbon ? $data->date->format('Y-m-d') : $data->date;
-
-            $emailData = [
-                'date' => $formattedDate,
-                'location' => $data->location,
-                'subject_code' => $data->subject_code,
-                'department' => $data->department,
-                'section' => $data->section,
-                'evaluated_teacher_code' => $data->evaluated_teacher_code,
-                'evaluator_teacher1' => $data->evaluator_teacher1,
-                'score1' => $data->score1,
-                'evaluator_email1' => $data->evaluator_email1,
-                'evaluator_teacher2' => $data->evaluator_teacher2 ?? 'N/A',
-                'score2' => $data->score2 ?? 'N/A',
-                'evaluator_email2' => $data->evaluator_email2 ?? 'N/A',
-                'lesson_name' => $data->lesson_name,
-                'advantages' => $data->advantages ?? 'N/A',
-                'disadvantages' => $data->disadvantages ?? 'N/A',
-                'conclusion' => $data->conclusion ?? 'N/A'
-            ];
-
-            try {
-                // Gửi email từ view
-                Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
-                    $message->to('thanghq12@fe.edu.vn')
-                        ->cc('task-bmcn-ptcd-hpg@feedu.onmicrosoft.com')
-                        ->subject('Thông báo dự giờ từ ' . config('app.name'));
-                });
-
-                // Cập nhật thời gian gửi mail trong bảng
-                $data->update(['sent_at' => now()]);
-
-                $successCount++;
-            } catch (\Exception $e) {
-                $errorCount++;
-            }
-        }
-
-        // Thông báo kết quả
-        return redirect()->route('datadugio')->with('success', "Đã gửi thành công $successCount email. $errorCount email gặp lỗi.");
+        // Trả về thông báo thành công
+        return redirect()->route('datadugio')->with('success', 'Các email sẽ được gửi trong nền.');
     }
 }
