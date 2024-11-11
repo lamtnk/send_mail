@@ -22,10 +22,10 @@ class CreateClassObservationsPolyTable extends Migration
             $table->string('section');
             $table->string('evaluated_teacher_code');
             $table->string('evaluator_teacher1');
-            $table->integer('score1');
+            $table->string('score1');
             $table->string('evaluator_email1');
             $table->string('evaluator_teacher2')->nullable();
-            $table->integer('score2')->nullable();
+            $table->string('score2')->nullable();
             $table->string('evaluator_email2')->nullable();
             $table->string('lesson_name');
             $table->text('advantages')->nullable();
