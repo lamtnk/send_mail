@@ -34,6 +34,7 @@ class CreateClassObservationsTable extends Migration
             $table->string('block');
             $table->string('semester');
             $table->timestamp('sent_at')->nullable(); // Để kiểm tra email đã gửi chưa
+            $table->unsignedBigInteger('send_by')->nullable();
             $table->timestamps();
 
             // Đảm bảo dữ liệu duy nhất với các trường liên quan, không có user_id

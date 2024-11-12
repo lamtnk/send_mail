@@ -33,8 +33,13 @@ class SendMailController extends Controller
         $record = $model::find($recordId);
 
         // Kiểm tra nếu bản ghi không tồn tại hoặc người dùng không phải là evaluator_teacher1
-        if (!$record || $record->evaluator_email1 !== $userEmail) {
-            return redirect()->back()->with('error', 'Bạn không có quyền gửi email cho bản ghi này.');
+        // if (!$record || $record->evaluator_email1 !== $userEmail) {
+        //     return redirect()->back()->with('error', 'Bạn không có quyền gửi email cho bản ghi này.');
+        // }
+
+        // Kiểm tra nếu các trường điểm không đầy đủ
+        if (empty($record->score1) || empty($record->score2)) {
+            return redirect()->back()->with('error', 'Bản ghi chưa đủ đầu điểm để gửi.');
         }
 
         // Định dạng lại trường date để chỉ lấy ngày
@@ -62,20 +67,26 @@ class SendMailController extends Controller
 
         try {
             // Gửi email từ view
-            Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
-                $message->to('thanghq12@fe.edu.vn')
+            Mail::send('emails.notification', $emailData, function ($message) use ($emailData, $record) {
+                $message->to('lamtnk2@fpt.edu.vn')
                     ->cc('task-bmcn-ptcd-hpg@feedu.onmicrosoft.com')
-                    ->subject('Thông báo dự giờ từ ' . config('app.name'));
+                    ->subject('Thông báo dự giờ từ Bộ môn ' . $record->department);
             });
 
-            // Cập nhật lại trường sent_at cho bản ghi sau khi gửi email thành công
-            $record->update(['sent_at' => now()]);
+            // Cập nhật lại trường sent_at và send_by cho bản ghi sau khi gửi email thành công
+            $record->update([
+                'sent_at' => now(),
+                'send_by' => Auth::id(),
+            ]);
 
             return redirect()->back()->with('success', 'Gửi mail thành công');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gửi mail thất bại: ' . $e->getMessage());
         }
     }
+
+
+
 
     public function dataDugio(Request $request)
     {
@@ -96,7 +107,10 @@ class SendMailController extends Controller
         }
 
         // Lọc theo evaluator_email1 để chỉ lấy bản ghi của người dùng đăng nhập
-        $datas = $model->where('evaluator_email1', $userEmail)->get();
+        $datas = $model->where(function ($query) use ($userEmail) {
+            $query->where('evaluator_email1', $userEmail)
+                ->orWhere('evaluator_email2', $userEmail);
+        })->get();
 
         // Lấy danh sách năm học, học kỳ, và block cho dropdown từ bảng tương ứng
         $years = $model->selectRaw('YEAR(date) as year')->distinct()->pluck('year');
@@ -110,6 +124,7 @@ class SendMailController extends Controller
     public function sendAll(Request $request)
     {
         $userEmail = Auth::user()->email;
+        $userId = Auth::id();
         $model = session('system_type') === 'cd' ? ClassObservationPoly::class : ClassObservation::class;
 
         // Lấy bộ lọc từ request
@@ -119,7 +134,14 @@ class SendMailController extends Controller
 
         // Truy vấn dữ liệu từ bảng tương ứng dựa trên bộ lọc
         $query = $model::query()
-            ->where('evaluator_email1', $userEmail)
+            ->where(function ($query) use ($userEmail) {
+                $query->where('evaluator_email1', $userEmail)
+                    ->orWhere('evaluator_email2', $userEmail);
+            })
+            ->whereNotNull('score1')
+            ->whereNotNull('score2')
+            ->where('score1', '!=', '')
+            ->where('score2', '!=', '')
             ->whereNull('sent_at');
 
         if ($year) {
@@ -135,10 +157,13 @@ class SendMailController extends Controller
         }
 
         $unsentData = $query->get();
-        // Dispatch job để gửi email
-        dispatch(new SendBulkEmailsJob($unsentData, $userEmail));
 
-        // Trả về thông báo thành công
+        foreach ($unsentData as $data) {
+            dispatch(new SendBulkEmailsJob($data, $userId));
+        }
+
         return redirect()->route('datadugio')->with('success', 'Các email sẽ được gửi trong nền.');
     }
+
+
 }

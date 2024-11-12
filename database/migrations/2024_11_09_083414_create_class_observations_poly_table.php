@@ -34,6 +34,7 @@ class CreateClassObservationsPolyTable extends Migration
             $table->string('block');
             $table->string('semester');
             $table->timestamp('sent_at')->nullable();
+            $table->unsignedBigInteger('send_by')->nullable();
             $table->timestamps();
 
             $table->unique(['date', 'subject_code', 'section', 'block', 'semester'], 'unique_class_observation_poly');

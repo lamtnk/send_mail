@@ -14,59 +14,54 @@ class SendBulkEmailsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $unsentData;
-    protected $userEmail;
+    protected $data;
+    protected $userId;
 
-    public function __construct($unsentData, $userEmail)
+    public function __construct($data, $userId)
     {
-        $this->unsentData = $unsentData;
-        $this->userEmail = $userEmail;
+        $this->data = $data;
+        $this->userId = $userId;
     }
 
     public function handle()
     {
-        $successCount = 0;
-        $errorCount = 0;
+        $formattedDate = $this->data->date instanceof \Carbon\Carbon ? $this->data->date->format('Y-m-d') : $this->data->date;
+        $emailData = [
+            'date' => $formattedDate,
+            'location' => $this->data->location,
+            'subject_code' => $this->data->subject_code,
+            'department' => $this->data->department,
+            'section' => $this->data->section,
+            'evaluated_teacher_code' => $this->data->evaluated_teacher_code,
+            'evaluator_teacher1' => $this->data->evaluator_teacher1,
+            'score1' => $this->data->score1,
+            'evaluator_email1' => $this->data->evaluator_email1,
+            'evaluator_teacher2' => $this->data->evaluator_teacher2 ?? 'N/A',
+            'score2' => $this->data->score2 ?? 'N/A',
+            'evaluator_email2' => $this->data->evaluator_email2 ?? 'N/A',
+            'lesson_name' => $this->data->lesson_name,
+            'advantages' => $this->data->advantages ?? 'N/A',
+            'disadvantages' => $this->data->disadvantages ?? 'N/A',
+            'conclusion' => $this->data->conclusion ?? 'N/A'
+        ];
 
-        foreach ($this->unsentData as $data) {
-            $formattedDate = $data->date instanceof \Carbon\Carbon ? $data->date->format('Y-m-d') : $data->date;
-            $emailData = [
-                'date' => $formattedDate,
-                'location' => $data->location,
-                'subject_code' => $data->subject_code,
-                'department' => $data->department,
-                'section' => $data->section,
-                'evaluated_teacher_code' => $data->evaluated_teacher_code,
-                'evaluator_teacher1' => $data->evaluator_teacher1,
-                'score1' => $data->score1,
-                'evaluator_email1' => $data->evaluator_email1,
-                'evaluator_teacher2' => $data->evaluator_teacher2 ?? 'N/A',
-                'score2' => $data->score2 ?? 'N/A',
-                'evaluator_email2' => $data->evaluator_email2 ?? 'N/A',
-                'lesson_name' => $data->lesson_name,
-                'advantages' => $data->advantages ?? 'N/A',
-                'disadvantages' => $data->disadvantages ?? 'N/A',
-                'conclusion' => $data->conclusion ?? 'N/A'
-            ];
+        try {
+            // Gửi email từ view
+            Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
+                $message->to('lamtnk2@fpt.edu.vn')
+                    ->cc('task-bmcn-ptcd-hpg@feedu.onmicrosoft.com')
+                    ->subject('Thông báo dự giờ từ Bộ môn ' . $this->data->department);
+            });
 
-            try {
-                // Gửi email từ view
-                Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
-                    $message->to('thanghq12@fe.edu.vn')
-                        ->cc('task-bmcn-ptcd-hpg@feedu.onmicrosoft.com')
-                        ->subject('Thông báo dự giờ từ ' . config('app.name'));
-                });
+            // Cập nhật thời gian gửi mail trong bảng
+            $this->data->update([
+                'sent_at' => now(),
+                'send_by' => $this->userId
+            ]);
 
-                // Cập nhật thời gian gửi mail trong bảng
-                $data->update(['sent_at' => now()]);
-
-                $successCount++;
-            } catch (\Exception $e) {
-                $errorCount++;
-            }
+            Log::info("Gửi thành công email cho bản ghi ID {$this->data->id}.");
+        } catch (\Exception $e) {
+            Log::error("Lỗi khi gửi email cho bản ghi ID {$this->data->id}: " . $e->getMessage());
         }
-
-        // Log kết quả gửi email (nếu cần thiết)
-        Log::info("Gửi thành công $successCount email, $errorCount email gặp lỗi.");
     }
 }

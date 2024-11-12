@@ -59,6 +59,39 @@ class DataSyncController extends Controller
         }
     }
 
+    public function hardSync(Request $request)
+    {
+        try {
+            // Kiểm tra nếu hệ thống chưa được chọn
+            $systemType = session('system_type');
+            if (!$systemType) {
+                return redirect()->route('datadugio')->with('error', 'Vui lòng chọn hệ trước khi đồng bộ dữ liệu.');
+            }
+
+            // Lấy ID bảng tính và tên trang từ request
+            $spreadsheetId = '1Vix2IMBTbhUEQ0YajiZn09wUKGVSZAG3FSZeJAruJ-8';
+            $range = 'KQDG - FA24';
+
+            // Kiểm tra nếu chưa nhập ID bảng tính hoặc tên trang tính
+            if (!$spreadsheetId || !$range) {
+                return redirect()->route('datadugio')->with('error', 'Vui lòng nhập ID bảng tính và tên trang tính.');
+            }
+
+            // Xác định bảng mục tiêu dựa trên hệ đã chọn
+            $table = $systemType === 'cd' ? 'class_observations_poly' : 'class_observations';
+            $result = $this->readGoogleSheet($spreadsheetId, $range, $table);
+            // Kiểm tra nếu có lỗi trong quá trình đọc Google Sheet
+            if ($result === false) {
+                return redirect()->route('datadugio')->with('error', 'Đồng bộ dữ liệu thất bại: Không thể đọc dữ liệu từ Google Sheet.');
+            }
+
+            return redirect()->route('datadugio')->with('success', 'Đồng bộ dữ liệu thành công.');
+        } catch (Exception $e) {
+            Log::error('Error reading Google Sheet: ' . $e->getMessage());
+            return redirect()->route('datadugio')->with('error', 'Đồng bộ dữ liệu thất bại: ' . $e->getMessage());
+        }
+    }
+
 
 
     public function readGoogleSheet($spreadsheetId, $range, $table)
@@ -136,7 +169,7 @@ class DataSyncController extends Controller
                 'date' => $row[11],            // Ngày dự giờ
                 'location' => $row[13],        // Địa điểm
                 'subject_code' => $row[0],     // Mã môn học
-                'evaluated_teacher_code' => $row[15], // Mã GV được dự giờ
+                'evaluated_teacher_code' => strtolower($row[15]), // Mã GV được dự giờ
                 'evaluator_teacher' => $row[10],      // GV dự giờ
                 'evaluator_email' => $row[9],      // Email GV dự giờ
                 'score' => $row[1],            // Điểm đánh giá
@@ -148,6 +181,7 @@ class DataSyncController extends Controller
                 'department' => $row[18],
                 'block' => $row[6] ?? null,        // Thêm Block
                 'semester' => $row[7] ?? null,
+                'timestamp' => $row[8]
             ];
         }, $data);
         return $filteredData;
@@ -170,9 +204,6 @@ class DataSyncController extends Controller
                 continue; // Bỏ qua bản ghi này nếu ngày không hợp lệ
             }
 
-
-
-
             $key = $date . '-' . $row['subject_code'] . '-' . $row['section'] . '-' . $row['evaluated_teacher_code'];
             if (!isset($temp[$key])) {
                 $temp[$key] = [];
@@ -183,7 +214,6 @@ class DataSyncController extends Controller
 
         foreach ($temp as $key => $rows) {
             if (count($rows) == 2) {
-
                 // Nếu có 2 người dự giờ, gộp dữ liệu
                 $transformedData[] = [
                     'date' => $rows[0]['date'],
@@ -224,8 +254,49 @@ class DataSyncController extends Controller
                     'block' => $rows[0]['block'],
                     'semester' => $rows[0]['semester'],
                 ];
+            } else if (count($rows) > 2) {
+                $rows = $this->filterDuplicatesByLatestTimestamp($rows);
+                $transformedData[] = [
+                    'date' => $rows[0]['date'],
+                    'location' => $rows[0]['location'],
+                    'subject_code' => $rows[0]['subject_code'],
+                    'evaluated_teacher_code' => $rows[0]['evaluated_teacher_code'],
+                    'department' => $rows[0]['department'],
+                    'evaluator_teacher1' => $rows[0]['evaluator_teacher'],
+                    'score1' => $rows[0]['score'] ?? 'N/A',
+                    'evaluator_email1' => $rows[0]['evaluator_email'],
+                    'evaluator_teacher2' => $rows[1]['evaluator_teacher'],
+                    'score2' => $rows[1]['score'] ?? 'N/A',
+                    'evaluator_email2' => $rows[1]['evaluator_email'],
+                    'lesson_name' => $rows[0]['lesson_name'],
+                    'section' => $rows[0]['section'],
+                    'advantages' => $rows[0]['advantages'] . ', ' . $rows[1]['advantages'],
+                    'disadvantages' => $rows[0]['disadvantages'] . ', ' . $rows[1]['disadvantages'],
+                    'conclusion' => $rows[0]['conclusion'] . ', ' . $rows[1]['conclusion'],
+                    'block' => $rows[0]['block'],
+                    'semester' => $rows[0]['semester'],
+                ];
             }
         }
         return $transformedData;
     }
+
+    private function filterDuplicatesByLatestTimestamp($data)
+    {
+        $latestEntries = [];
+
+        foreach ($data as $entry) {
+            $evaluatorEmail = $entry['evaluator_email'];
+
+            // Kiểm tra và chỉ giữ bản ghi có timestamp mới nhất cho mỗi evaluator_email
+            if (!isset($latestEntries[$evaluatorEmail]) || strtotime($entry['timestamp']) > strtotime($latestEntries[$evaluatorEmail]['timestamp'])) {
+                $latestEntries[$evaluatorEmail] = $entry;
+            }
+        }
+
+        // Trả về kết quả cuối cùng với bản ghi mới nhất cho mỗi evaluator_email
+        return array_values($latestEntries);
+    }
+
+
 }

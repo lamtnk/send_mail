@@ -37,6 +37,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/send-all', [SendMailController::class, 'sendAll'])->name('sendAll');
     Route::get('/sync-data', [DataSyncController::class, 'index'])->name('sync.index');
     Route::post('/sync-data', [DataSyncController::class, 'sync'])->name('sync.perform');
+    Route::post('/hard-sync', [DataSyncController::class, 'hardSync'])->name('hardSync');
     Route::get('/choose-department', [DepartmentController::class, 'showChooseForm'])->name('department.choose');
     Route::post('/choose-department', [DepartmentController::class, 'saveDepartment'])->name('department.save');
 });
