@@ -48,7 +48,7 @@ class SendBulkEmailsJob implements ShouldQueue
         try {
             // Gửi email từ view
             Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
-                $message->to('lamtnk2@fpt.edu.vn')
+                $message->to('thanghq12@fe.edu.vn')
                     ->cc('task-bmcn-ptcd-hpg@feedu.onmicrosoft.com')
                     ->subject('Thông báo dự giờ từ Bộ môn ' . $this->data->department);
             });
