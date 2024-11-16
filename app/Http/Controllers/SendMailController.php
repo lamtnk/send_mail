@@ -68,7 +68,7 @@ class SendMailController extends Controller
         try {
             // Gửi email từ view
             Mail::send('emails.notification', $emailData, function ($message) use ($emailData, $record) {
-                $message->to('thanghq12@fe.edu.vn')
+                $message->to($emailData['evaluated_teacher_code'])
                     ->cc('to-fpolyhpg@feedu.onmicrosoft.com')
                     ->subject('Thông báo dự giờ từ Bộ môn ' . $record->department);
             });
