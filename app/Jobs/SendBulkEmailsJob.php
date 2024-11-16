@@ -45,10 +45,11 @@ class SendBulkEmailsJob implements ShouldQueue
             'conclusion' => $this->data->conclusion ?? 'N/A'
         ];
 
+        $mailTo = $this->ensureFeDomain($emailData['evaluated_teacher_code']);
         try {
             // Gửi email từ view
-            Mail::send('emails.notification', $emailData, function ($message) use ($emailData) {
-                $message->to($emailData['evaluated_teacher_code'])
+            Mail::send('emails.notification', $emailData, function ($message) use ($emailData, $mailTo) {
+                $message->to($mailTo)
                     ->cc('to-fpolyhpg@feedu.onmicrosoft.com')
                     ->subject('Thông báo dự giờ từ Bộ môn ' . $emailData['department']);
             });
@@ -63,5 +64,16 @@ class SendBulkEmailsJob implements ShouldQueue
         } catch (\Exception $e) {
             Log::error("Lỗi khi gửi email cho bản ghi ID {$this->data->id}: " . $e->getMessage());
         }
+    }
+
+    private function ensureFeDomain($email)
+    {
+        // Kiểm tra nếu chuỗi đã chứa '@fe.edu.vn'
+        if (strpos($email, '@fe.edu.vn') === false) {
+            // Nếu chưa, thêm '@fe.edu.vn' vào cuối chuỗi
+            $email .= '@fe.edu.vn';
+        }
+
+        return $email;
     }
 }

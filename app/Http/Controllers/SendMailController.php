@@ -65,10 +65,12 @@ class SendMailController extends Controller
             'conclusion' => $record->conclusion ?? 'N/A'
         ];
 
+        $mailTo = $this->ensureFeDomain($emailData['evaluated_teacher_code']);
+
         try {
             // Gửi email từ view
-            Mail::send('emails.notification', $emailData, function ($message) use ($emailData, $record) {
-                $message->to($emailData['evaluated_teacher_code'])
+            Mail::send('emails.notification', $emailData, function ($message) use ($emailData, $record, $mailTo) {
+                $message->to($mailTo)
                     ->cc('to-fpolyhpg@feedu.onmicrosoft.com')
                     ->subject('Thông báo dự giờ từ Bộ môn ' . $record->department);
             });
@@ -165,5 +167,14 @@ class SendMailController extends Controller
         return redirect()->route('datadugio')->with('success', 'Các email sẽ được gửi trong nền.');
     }
 
+    private function ensureFeDomain($email)
+    {
+        // Kiểm tra nếu chuỗi đã chứa '@fe.edu.vn'
+        if (strpos($email, '@fe.edu.vn') === false) {
+            // Nếu chưa, thêm '@fe.edu.vn' vào cuối chuỗi
+            $email .= '@fe.edu.vn';
+        }
 
+        return $email;
+    }
 }
